@@ -1249,5 +1249,23 @@ window.addEventListener('DOMContentLoaded',function(){
 })();
 </script>
 
+<script>
+(function(){
+  function addStockField(){
+    const price=document.getElementById('prod-price');
+    if(!price||document.getElementById('prod-stock'))return;
+    const box=document.createElement('div');box.innerHTML='<label class="block text-[11px] text-slate-400 mb-1">Stock disponible *</label><input type="number" id="prod-stock" min="0" step="1" required placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100">';
+    price.closest('.grid').appendChild(box.firstElementChild);
+  }
+  window.addEventListener('DOMContentLoaded',function(){
+    addStockField();
+    const oldSubmit=window.handleProductSubmit;
+    window.handleProductSubmit=function(e){oldSubmit(e);const stock=Math.max(0,parseInt(document.getElementById('prod-stock')?.value||'0',10));const edit=document.getElementById('prod-edit-id').value;const p=state.products.find(x=>x.id===edit)||state.products[0];if(p){p.stock=stock;saveToLocalStorage();renderAdminProductsList();}};
+    const oldEdit=window.editProduct;window.editProduct=function(id){oldEdit(id);const p=state.products.find(x=>x.id===id);if(p&&document.getElementById('prod-stock'))document.getElementById('prod-stock').value=Number(p.stock||0);};
+    const oldReset=window.resetProductForm;window.resetProductForm=function(){oldReset();if(document.getElementById('prod-stock'))document.getElementById('prod-stock').value='0';};
+  });
+})();
+</script>
+
 </body>
 </html>
