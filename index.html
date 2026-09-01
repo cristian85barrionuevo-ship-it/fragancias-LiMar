@@ -1188,5 +1188,23 @@ window.requestAdminAccess=function(){
 window.logoutAdmin=async function(){ await window.limarSupabase.auth.signOut(); state.isAdminAuthenticated=false; toggleModal('admin-modal',false); showToast('Sesión cerrada'); };
 </script>
 
+<script>
+function sendPasswordRecovery(){
+  const email=document.getElementById('admin-email').value.trim();
+  const error=document.getElementById('admin-auth-error');
+  if(!email){error.textContent='Primero ingresá tu email.';error.classList.remove('hidden');return;}
+  window.limarSupabase.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname}).then(({error:resetError})=>{
+    if(resetError){error.textContent='No pudimos enviar el correo. Verificá que el email esté registrado.';error.classList.remove('hidden');return;}
+    error.textContent='Te enviamos un correo para crear una contraseña nueva.';error.className='text-xs text-emerald-400';
+  });
+}
+window.addEventListener('DOMContentLoaded',function(){
+  const form=document.querySelector('#supabase-auth-modal form');
+  if(form&&!document.getElementById('recovery-link')){
+    const link=document.createElement('button');link.type='button';link.id='recovery-link';link.textContent='Olvidé mi contraseña';link.className='w-full text-xs text-amber-400 hover:text-amber-300';link.onclick=sendPasswordRecovery;form.insertBefore(link,form.querySelector('button:not([type="button"])'));
+  }
+});
+</script>
+
 </body>
 </html>
