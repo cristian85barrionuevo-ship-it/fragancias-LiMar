@@ -1255,7 +1255,8 @@ window.addEventListener('DOMContentLoaded',function(){
     const name=document.getElementById('cust-name').value.trim(),phone=document.getElementById('cust-phone').value.trim(),delivery=document.getElementById('cust-delivery').value,address=document.getElementById('cust-address').value.trim(),notes=document.getElementById('cust-notes').value.trim();
     const total=state.cart.reduce((s,i)=>s+Number(i.price)*Number(i.quantity),0);
     const items=state.cart.map(i=>({product_id:i.dbId||i.id,product_name:i.name,unit_price:Number(i.price),quantity:Number(i.quantity)}));
-    const {error}=await window.limarSupabase.rpc('create_order_with_items',{order_data:{customer_name:name,customer_phone:phone,delivery_address:delivery==='Retiro en Local'?'Retiro en local':address,notes,total},items});
+    const {error}=await const waLink=document.createElement('a');waLink.href=waUrl;waLink.target='_blank';waLink.rel='noopener';waLink.style.display='none';document.body.appendChild(waLink);waLink.click();setTimeout(()=>waLink.remove(),1000);
+    window.limarSupabase.rpc('create_order_with_items',{order_data:{customer_name:name,customer_phone:phone,delivery_address:delivery==='Retiro en Local'?'Retiro en local':address,notes,total},items});
     if(error){showToast(error.message.includes('stock_insufficient')?'No hay stock suficiente para uno de los productos.':'No pudimos registrar el pedido.','error');throw error;}
   };
 })();
@@ -1303,10 +1304,10 @@ window.addEventListener('DOMContentLoaded',function(){
     if(delivery==='Envío a Domicilio'&&address)msg+=`📍 *Dirección:* ${address}\n`;
     msg+=`💳 *Pago al Recibir:* ${payment}\n`;if(notes)msg+=`📝 *Notas:* ${notes}\n`;msg+='\n📦 *DETALLE DEL PEDIDO:*\n';cart.forEach((i,n)=>{const sub=i.price*i.quantity;msg+=`${n+1}. *${i.name}* ${i.size?'('+i.size+')':''}\n   └ ${i.quantity}x ${state.currency}${formatPrice(i.price)} = *${state.currency}${formatPrice(sub)}*\n`;});msg+=`\n-----------------------------------\n💰 *TOTAL A PAGAR AL RECIBIR: ${state.currency}${formatPrice(total)}*\n\nQuedo a la espera de la confirmación para la entrega. ¡Muchas gracias!`;
     const normalizedPhone=String(state.whatsappPhone||'').replace(/\D/g,'');
-    const waUrl=`https://wa.me/${normalizedPhone}?text=${encodeURIComponent(msg)}`;
+    const waUrl=`https://api.whatsapp.com/send?phone=${normalizedPhone}&text=${encodeURIComponent(msg)}`;
     const items=cart.map(i=>({product_id:i.dbId||i.id,product_name:i.name,unit_price:Number(i.price),quantity:Number(i.quantity)}));
     window.limarSupabase.rpc('create_order_with_items',{order_data:{customer_name:name,customer_phone:phone,delivery_address:delivery==='Retiro en Local'?'Retiro en local':address,notes,total},items}).catch(()=>{});
-    state.cart=[];saveToLocalStorage();updateCartUI();toggleModal('checkout-modal',false);window.location.assign(waUrl);
+    state.cart=[];saveToLocalStorage();updateCartUI();toggleModal('checkout-modal',false);
   };
 })();
 </script>
