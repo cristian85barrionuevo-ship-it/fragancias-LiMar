@@ -390,6 +390,10 @@
                                 <input type="number" id="prod-price" step="0.01" required placeholder="12000" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100">
                             </div>
                             <div>
+                                <label class="block text-[11px] text-slate-400 mb-1">Stock disponible *</label>
+                                <input type="number" id="prod-stock" min="0" step="1" required placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100">
+                            </div>
+                            <div>
                                 <label class="block text-[11px] text-slate-400 mb-1">Tamaño / Volumen</label>
                                 <input type="text" id="prod-size" placeholder="Ej: 100 ml / Eau de Parfum" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100">
                             </div>
@@ -743,12 +747,15 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
 
             const existingItem = state.cart.find(item => item.id === productId);
             if (existingItem) {
+                if (existingItem.quantity >= Number(product.stock || 0)) { showToast('No hay más unidades disponibles', 'error'); return; }
                 existingItem.quantity += 1;
             } else {
                 state.cart.push({
                     id: product.id,
                     name: product.name,
                     price: product.price,
+                    dbId: product.dbId,
+                    stock: product.stock,
                     size: product.size,
                     quantity: 1
                 });
@@ -950,6 +957,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
             const price = parseFloat(document.getElementById('prod-price').value);
             const size = document.getElementById('prod-size').value.trim();
             const image = document.getElementById('prod-image').value.trim();
+            const stock = Math.max(0, parseInt(document.getElementById('prod-stock').value || '0', 10));
 
             if (editId) {
                 const prod = state.products.find(p => p.id === editId);
@@ -959,6 +967,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
                     prod.price = price;
                     prod.size = size;
                     prod.image = image;
+                    prod.stock = stock;
                 }
             } else {
                 state.products.unshift({
@@ -966,6 +975,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
                     name,
                     category,
                     price,
+                    stock,
                     size,
                     image
                 });
@@ -987,6 +997,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
             document.getElementById('prod-name').value = prod.name;
             document.getElementById('prod-category').value = prod.category;
             document.getElementById('prod-price').value = prod.price;
+            document.getElementById('prod-stock').value = Number(prod.stock || 0);
             document.getElementById('prod-size').value = prod.size || '';
             document.getElementById('prod-image').value = prod.image || '';
             document.getElementById('prod-submit-btn').innerText = "Guardar Cambios";
@@ -997,6 +1008,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
             document.getElementById('prod-name').value = '';
             document.getElementById('prod-category').value = '';
             document.getElementById('prod-price').value = '';
+            document.getElementById('prod-stock').value = '0';
             document.getElementById('prod-size').value = '';
             document.getElementById('prod-image').value = '';
             document.getElementById('prod-submit-btn').innerText = "Guardar Producto";
