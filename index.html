@@ -1206,5 +1206,19 @@ window.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<script>
+(function(){
+  function showRecoveryForm(){
+    const isRecovery=window.location.hash.includes('type=recovery') || new URLSearchParams(window.location.search).has('code');
+    if(!isRecovery || document.getElementById('password-update-modal')) return;
+    const box=document.createElement('div');box.id='password-update-modal';box.className='fixed inset-0 z-[80] flex items-center justify-center p-4';
+    box.innerHTML='<div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md"></div><div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl p-6"><h3 class="font-cinzel text-lg font-bold text-slate-100 mb-1">Crear nueva contraseña</h3><p class="text-xs text-slate-400 mb-4">Elegí una contraseña nueva para tu panel privado.</p><form id="password-update-form" class="space-y-3"><input id="new-admin-password" type="password" minlength="8" required placeholder="Nueva contraseña" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100"><input id="new-admin-password-confirm" type="password" minlength="8" required placeholder="Repetir contraseña" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100"><p id="password-update-error" class="hidden text-xs text-red-400"></p><button class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl">Guardar contraseña</button></form></div>';
+    document.body.appendChild(box);
+    document.getElementById('password-update-form').onsubmit=async function(e){e.preventDefault();const p=document.getElementById('new-admin-password').value;const c=document.getElementById('new-admin-password-confirm').value;const err=document.getElementById('password-update-error');if(p!==c){err.textContent='Las contraseñas no coinciden.';err.classList.remove('hidden');return;}const result=await window.limarSupabase.auth.updateUser({password:p});if(result.error){err.textContent='No pudimos cambiar la contraseña. Volvé a solicitar el correo e intentá de nuevo.';err.classList.remove('hidden');return;}document.querySelector('#password-update-form').innerHTML='<p class="text-sm text-emerald-400">Contraseña actualizada. Ya podés cerrar esta ventana y entrar al panel.</p><button type="button" class="w-full mt-3 py-3 bg-amber-500 text-slate-950 font-bold rounded-xl" onclick="document.getElementById(\'password-update-modal\').remove();history.replaceState({},document.title,location.pathname)">Continuar</button>';};
+  }
+  window.addEventListener('DOMContentLoaded',showRecoveryForm);
+})();
+</script>
+
 </body>
 </html>
