@@ -1267,5 +1267,18 @@ window.addEventListener('DOMContentLoaded',function(){
 })();
 </script>
 
+<script>
+(function(){
+  function addStockColumn(){
+    const table=document.querySelector('#tab-content-products table');
+    if(!table)return;
+    const head=table.querySelector('thead tr');
+    if(head&&!head.querySelector('.stock-header')){const th=document.createElement('th');th.className='p-3 stock-header';th.textContent='Stock';head.insertBefore(th,head.lastElementChild);}
+    document.querySelectorAll('#admin-products-list tr').forEach(row=>{if(row.querySelector('.stock-cell'))return;const name=row.querySelector('td')?.textContent||'';const p=state.products.find(x=>name.includes(x.name));const td=document.createElement('td');td.className='p-3 stock-cell font-mono '+((p?.stock||0)<=2?'text-red-400':'text-emerald-400');td.textContent=String(p?.stock??0);row.insertBefore(td,row.lastElementChild);});
+  }
+  window.addEventListener('DOMContentLoaded',function(){const old=window.renderAdminProductsList;window.renderAdminProductsList=function(){old();setTimeout(addStockColumn,0);};setTimeout(addStockColumn,500);});
+})();
+</script>
+
 </body>
 </html>
