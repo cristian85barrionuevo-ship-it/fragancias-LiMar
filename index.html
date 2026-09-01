@@ -1292,5 +1292,24 @@ window.addEventListener('DOMContentLoaded',function(){
 })();
 </script>
 
+<script>
+(function(){
+  window.sendWhatsAppOrder=function(event){
+    event.preventDefault();
+    if(!state.cart.length){showToast('El carrito está vacío','error');return;}
+    const name=document.getElementById('cust-name').value.trim(),phone=document.getElementById('cust-phone').value.trim(),delivery=document.getElementById('cust-delivery').value,address=document.getElementById('cust-address').value.trim(),payment=document.getElementById('cust-payment').value,notes=document.getElementById('cust-notes').value.trim();
+    const cart=state.cart.map(i=>({...i}));const total=cart.reduce((s,i)=>s+i.price*i.quantity,0);
+    let msg=`✨ *NUEVO PEDIDO DE PERFUMERÍA* ✨\n🏪 *Tienda:* ${state.storeName}\n-----------------------------------\n\n👤 *Cliente:* ${name}\n📞 *Teléfono:* ${phone}\n🚚 *Modalidad:* ${delivery}\n`;
+    if(delivery==='Envío a Domicilio'&&address)msg+=`📍 *Dirección:* ${address}\n`;
+    msg+=`💳 *Pago al Recibir:* ${payment}\n`;if(notes)msg+=`📝 *Notas:* ${notes}\n`;msg+='\n📦 *DETALLE DEL PEDIDO:*\n';cart.forEach((i,n)=>{const sub=i.price*i.quantity;msg+=`${n+1}. *${i.name}* ${i.size?'('+i.size+')':''}\n   └ ${i.quantity}x ${state.currency}${formatPrice(i.price)} = *${state.currency}${formatPrice(sub)}*\n`;});msg+=`\n-----------------------------------\n💰 *TOTAL A PAGAR AL RECIBIR: ${state.currency}${formatPrice(total)}*\n\nQuedo a la espera de la confirmación para la entrega. ¡Muchas gracias!`;
+    const wa=window.open(`https://wa.me/${state.whatsappPhone}?text=${encodeURIComponent(msg)}`,'_blank');
+    if(!wa){showToast('El navegador bloqueó WhatsApp. Permití ventanas emergentes para este sitio.','error');return;}
+    const items=cart.map(i=>({product_id:i.dbId||i.id,product_name:i.name,unit_price:Number(i.price),quantity:Number(i.quantity)}));
+    window.limarSupabase.rpc('create_order_with_items',{order_data:{customer_name:name,customer_phone:phone,delivery_address:delivery==='Retiro en Local'?'Retiro en local':address,notes,total},items}).then(({error})=>{if(error)showToast('WhatsApp se abrió, pero el pedido no quedó guardado en el panel.','error');});
+    state.cart=[];saveToLocalStorage();updateCartUI();toggleModal('checkout-modal',false);showToast('Pedido enviado a WhatsApp');
+  };
+})();
+</script>
+
 </body>
 </html>
