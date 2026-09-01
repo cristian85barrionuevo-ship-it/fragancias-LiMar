@@ -1159,5 +1159,34 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
 })();
 </script>
 
+<!-- Supabase Auth: panel privado -->
+<div id="supabase-auth-modal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4">
+  <div onclick="closeSupabaseAuth()" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md"></div>
+  <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl p-6">
+    <div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center"><i class="fa-solid fa-lock"></i></div><div><h3 class="font-cinzel text-lg font-bold text-slate-100">Panel privado</h3><p class="text-xs text-slate-400">Ingresá con tu cuenta de administración</p></div></div>
+    <form onsubmit="signInSupabaseAdmin(event)" class="space-y-3">
+      <input id="admin-email" type="email" required placeholder="Tu email" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100">
+      <input id="admin-password" type="password" required placeholder="Contraseña" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100">
+      <p id="admin-auth-error" class="hidden text-xs text-red-400"></p>
+      <button class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl">Ingresar al panel</button>
+    </form>
+  </div>
+</div>
+<script>
+function openSupabaseAuth(){ document.getElementById('supabase-auth-modal').classList.remove('hidden'); }
+function closeSupabaseAuth(){ document.getElementById('supabase-auth-modal').classList.add('hidden'); }
+async function signInSupabaseAdmin(event){
+  event.preventDefault();
+  const error=document.getElementById('admin-auth-error'); error.classList.add('hidden');
+  const {data,error:authError}=await window.limarSupabase.auth.signInWithPassword({email:document.getElementById('admin-email').value.trim(),password:document.getElementById('admin-password').value});
+  if(authError){error.textContent='No pudimos validar esos datos. Revisá el email y la contraseña.';error.classList.remove('hidden');return;}
+  state.isAdminAuthenticated=true; closeSupabaseAuth(); toggleModal('admin-pin-modal',false); toggleModal('admin-modal',true); showToast('Acceso concedido');
+}
+window.requestAdminAccess=function(){
+  window.limarSupabase.auth.getSession().then(({data})=>{ if(data.session){state.isAdminAuthenticated=true;toggleModal('admin-modal',true);}else openSupabaseAuth(); });
+};
+window.logoutAdmin=async function(){ await window.limarSupabase.auth.signOut(); state.isAdminAuthenticated=false; toggleModal('admin-modal',false); showToast('Sesión cerrada'); };
+</script>
+
 </body>
 </html>
