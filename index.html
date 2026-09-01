@@ -1236,5 +1236,18 @@ window.addEventListener('DOMContentLoaded',function(){
 })();
 </script>
 
+<script>
+(function(){
+  window.saveOrderToSupabase=async function(){
+    if(!state.cart.length)return;
+    const name=document.getElementById('cust-name').value.trim(),phone=document.getElementById('cust-phone').value.trim(),delivery=document.getElementById('cust-delivery').value,address=document.getElementById('cust-address').value.trim(),notes=document.getElementById('cust-notes').value.trim();
+    const total=state.cart.reduce((s,i)=>s+Number(i.price)*Number(i.quantity),0);
+    const items=state.cart.map(i=>({product_id:i.dbId||i.id,product_name:i.name,unit_price:Number(i.price),quantity:Number(i.quantity)}));
+    const {error}=await window.limarSupabase.rpc('create_order_with_items',{order_data:{customer_name:name,customer_phone:phone,delivery_address:delivery==='Retiro en Local'?'Retiro en local':address,notes,total},items});
+    if(error){showToast(error.message.includes('stock_insufficient')?'No hay stock suficiente para uno de los productos.':'No pudimos registrar el pedido.','error');throw error;}
+  };
+})();
+</script>
+
 </body>
 </html>
