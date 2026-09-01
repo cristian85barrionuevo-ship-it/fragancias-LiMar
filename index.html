@@ -1220,5 +1220,21 @@ window.addEventListener('DOMContentLoaded',function(){
 })();
 </script>
 
+<script>
+(function(){
+  function addOrdersTab(){
+    const nav=document.querySelector('#admin-modal .border-b');
+    if(nav&&!document.getElementById('admin-tab-btn-orders')){const b=document.createElement('button');b.id='admin-tab-btn-orders';b.className='px-4 py-2 text-slate-400 hover:text-slate-200';b.textContent='Pedidos';b.onclick=function(){switchAdminTab('orders')};nav.appendChild(b);}
+    const area=document.querySelector('#admin-modal .flex-1.overflow-y-auto');
+    if(area&&!document.getElementById('tab-content-orders')){const d=document.createElement('div');d.id='tab-content-orders';d.className='hidden space-y-4';d.innerHTML='<div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800"><div class="flex justify-between items-center mb-3"><h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Pedidos recibidos</h4><button onclick="loadAdminOrders()" class="text-xs text-slate-400 hover:text-white">Actualizar</button></div><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead><tr class="text-slate-500 border-b border-slate-800"><th class="p-2">Cliente</th><th class="p-2">Total</th><th class="p-2">Estado</th><th class="p-2">Fecha</th></tr></thead><tbody id="admin-orders-list"><tr><td colspan="4" class="p-4 text-center text-slate-500">Abrí esta pestaña para cargar pedidos.</td></tr></tbody></table></div></div>';area.appendChild(d);}
+  }
+  window.loadAdminOrders=async function(){const body=document.getElementById('admin-orders-list');if(!body)return;body.innerHTML='<tr><td colspan="4" class="p-4 text-center text-slate-500">Cargando...</td></tr>';const {data,error}=await window.limarSupabase.from('orders').select('id,customer_name,total,status,created_at').order('created_at',{ascending:false}).limit(50);if(error){body.innerHTML='<tr><td colspan="4" class="p-4 text-center text-red-400">No se pudieron cargar los pedidos.</td></tr>';return;}body.innerHTML=(data||[]).map(o=>`<tr class="border-b border-slate-800/70"><td class="p-2 text-slate-200">${o.customer_name}</td><td class="p-2 text-amber-400 font-mono">$${Number(o.total).toLocaleString('es-AR')}</td><td class="p-2"><select onchange="updateOrderStatus('${o.id}',this.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"><option ${o.status==='pendiente'?'selected':''}>pendiente</option><option ${o.status==='confirmado'?'selected':''}>confirmado</option><option ${o.status==='entregado'?'selected':''}>entregado</option><option ${o.status==='cancelado'?'selected':''}>cancelado</option></select></td><td class="p-2 text-slate-500">${new Date(o.created_at).toLocaleDateString('es-AR')}</td></tr>`).join('')||'<tr><td colspan="4" class="p-4 text-center text-slate-500">Todavía no hay pedidos.</td></tr>';};
+  window.updateOrderStatus=async function(id,status){const {error}=await window.limarSupabase.from('orders').update({status}).eq('id',id);if(error)showToast('No se pudo actualizar el pedido','error');else showToast('Pedido actualizado');};
+  const originalSwitch=window.switchAdminTab;
+  window.switchAdminTab=function(tab){if(tab==='orders'){['general','products','import'].forEach(x=>document.getElementById('tab-content-'+x)?.classList.add('hidden'));document.getElementById('tab-content-orders')?.classList.remove('hidden');['general','products','import','orders'].forEach(x=>document.getElementById('admin-tab-btn-'+x)?.classList.remove('text-amber-400','border-b-2','border-amber-400'));document.getElementById('admin-tab-btn-orders')?.classList.add('text-amber-400','border-b-2','border-amber-400');loadAdminOrders();}else{document.getElementById('tab-content-orders')?.classList.add('hidden');document.getElementById('admin-tab-btn-orders')?.classList.remove('text-amber-400','border-b-2','border-amber-400');originalSwitch(tab);}};
+  window.addEventListener('DOMContentLoaded',addOrdersTab);
+})();
+</script>
+
 </body>
 </html>
