@@ -1258,8 +1258,7 @@ window.addEventListener('DOMContentLoaded',function(){
     const name=document.getElementById('cust-name').value.trim(),phone=document.getElementById('cust-phone').value.trim(),delivery=document.getElementById('cust-delivery').value,address=document.getElementById('cust-address').value.trim(),notes=document.getElementById('cust-notes').value.trim();
     const total=state.cart.reduce((s,i)=>s+Number(i.price)*Number(i.quantity),0);
     const items=state.cart.map(i=>({product_id:i.dbId||i.id,product_name:i.name,unit_price:Number(i.price),quantity:Number(i.quantity)}));
-    const {error}=await const waLink=document.createElement('a');waLink.href=waUrl;waLink.target='_blank';waLink.rel='noopener';waLink.style.display='none';document.body.appendChild(waLink);waLink.click();setTimeout(()=>waLink.remove(),1000);setTimeout(()=>{if(document.visibilityState==='visible'&&!document.getElementById('whatsapp-fallback')){const f=document.createElement('div');f.id='whatsapp-fallback';f.style='position:fixed;z-index:9999;bottom:20px;left:20px;right:20px;background:#14532d;color:white;padding:16px;border-radius:12px;text-align:center;font-family:Arial';f.innerHTML='<div style="margin-bottom:8px">Si WhatsApp no se abrió automáticamente:</div><a href="'+waUrl+'" target="_blank" rel="noopener" style="display:inline-block;background:#22c55e;color:#052e16;padding:10px 16px;border-radius:8px;font-weight:bold;text-decoration:none">Abrir WhatsApp</a>';document.body.appendChild(f);}},700);
-    window.limarSupabase.rpc('create_order_with_items',{order_data:{customer_name:name,customer_phone:phone,delivery_address:delivery==='Retiro en Local'?'Retiro en local':address,notes,total},items});
+    const {error}=await window.limarSupabase.rpc('create_order_with_items',{order_data:{customer_name:name,customer_phone:phone,delivery_address:delivery==='Retiro en Local'?'Retiro en local':address,notes,total},items});
     if(error){showToast(error.message.includes('stock_insufficient')?'No hay stock suficiente para uno de los productos.':'No pudimos registrar el pedido.','error');throw error;}
   };
 })();
@@ -1310,10 +1309,13 @@ window.addEventListener('DOMContentLoaded',function(){
     const waUrl=`https://api.whatsapp.com/send?phone=${normalizedPhone}&text=${encodeURIComponent(msg)}`;
     const items=cart.map(i=>({product_id:i.dbId||i.id,product_name:i.name,unit_price:Number(i.price),quantity:Number(i.quantity)}));
     window.limarSupabase.rpc('create_order_with_items',{order_data:{customer_name:name,customer_phone:phone,delivery_address:delivery==='Retiro en Local'?'Retiro en local':address,notes,total},items}).catch(()=>{});
-    state.cart=[];saveToLocalStorage();updateCartUI();toggleModal('checkout-modal',false);
+    state.cart=[];saveToLocalStorage();updateCartUI();toggleModal('checkout-modal',false);showWhatsAppConfirm(waUrl);
   };
 })();
 </script>
 
+<script>
+function showWhatsAppConfirm(url){const old=document.getElementById('whatsapp-confirm-modal');if(old)old.remove();const d=document.createElement('div');d.id='whatsapp-confirm-modal';d.className='fixed inset-0 z-[90] flex items-center justify-center p-4';d.innerHTML='<div class="absolute inset-0 bg-slate-950/90"></div><div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-6 text-center"><div class="text-green-400 text-4xl mb-3">✓</div><h3 class="text-lg font-bold text-white mb-2">Pedido guardado</h3><p class="text-sm text-slate-400 mb-5">Ahora tocá el botón para abrir WhatsApp y enviar el pedido.</p><a href="'+url+'" target="_blank" rel="noopener" class="block w-full py-3 bg-green-500 hover:bg-green-400 text-slate-950 font-bold rounded-xl">Abrir WhatsApp</a><button onclick="document.getElementById(\'whatsapp-confirm-modal\').remove()" class="mt-3 text-xs text-slate-400">Cerrar</button></div>';document.body.appendChild(d);}
+</script>
 </body>
 </html>
