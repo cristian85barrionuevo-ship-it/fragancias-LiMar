@@ -726,14 +726,14 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
                             <h3 class="font-semibold text-sm text-slate-100 group-hover:text-amber-400 transition line-clamp-2">${prod.name}</h3>
                             ${prod.size ? `<p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-flask text-amber-500/70 mr-1"></i>${prod.size}</p>` : ''}
                         </div>
-                        <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                            <div>
-                                <span class="text-[10px] text-slate-500 uppercase block">Precio Unitario</span>
-                                <span class="font-mono font-bold text-lg text-amber-400">${state.currency}${formatPrice(prod.price)}</span>
+                        <div class="pt-2 border-t border-slate-800/80">
+                            <div class="flex items-center justify-between mb-2">
+                                <div><span class="text-[10px] text-slate-500 uppercase block">Precio Unitario</span><span class="font-mono font-bold text-lg text-amber-400">${state.currency}${formatPrice(prod.price)}</span></div>
+                                <span class="text-xs font-semibold ${Number(prod.stock || 0) > 0 ? 'text-emerald-400' : 'text-red-400'}">${Number(prod.stock || 0) > 0 ? Number(prod.stock) + ' disponibles' : 'Sin stock'}</span>
                             </div>
-                            <button onclick="addToCart('${prod.id}')" class="p-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition shadow-md shadow-amber-500/10 flex items-center gap-1.5 text-xs">
+                            <button onclick="addToCart('${prod.id}')" ${Number(prod.stock || 0) <= 0 ? 'disabled' : ''} class="p-2.5 bg-amber-500 hover:bg-amber-400 disabled:bg-slate-700 disabled:text-slate-500 text-slate-950 font-bold rounded-xl transition shadow-md shadow-amber-500/10 flex items-center gap-1.5 text-xs">
                                 <i class="fa-solid fa-plus"></i>
-                                <span>Agregar</span>
+                                <span>${Number(prod.stock || 0) > 0 ? 'Agregar' : 'Sin stock'}</span>
                             </button>
                         </div>
                     </div>
