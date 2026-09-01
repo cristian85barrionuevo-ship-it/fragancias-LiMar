@@ -1100,5 +1100,64 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
             }, 3000);
         }
     </script>
+<!-- Supabase integration for Fragancias LiMar -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  const SUPABASE_URL = 'https://zjxtwvpyfhbozmulibxr.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_q_o0nN-jv1U2IIaM7Kq2UA_k1zfklhd';
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  window.limarSupabase = client;
+
+  async function loadProductsFromSupabase() {
+    const { data, error } = await client.from('products').select('id,name,description,category,price,stock,image_url,active').eq('active', true).order('name');
+    if (error || !data || data.length === 0) return;
+    state.products = data.map(p => ({
+      id: String(p.id), dbId: p.id, name: p.name, description: p.description || '', category: p.category || 'Perfumes',
+      price: Number(p.price || 0), stock: Number(p.stock || 0), size: '', image: p.image_url || ''
+    }));
+    localStorage.setItem('aura_products', JSON.stringify(state.products));
+    renderCategories(); applyFilters(); renderAdminProductsList();
+  }
+
+  async function saveOrderToSupabase() {
+    if (!state.cart.length) return;
+    const name = document.getElementById('cust-name').value.trim();
+    const phone = document.getElementById('cust-phone').value.trim();
+    const delivery = document.getElementById('cust-delivery').value;
+    const address = document.getElementById('cust-address').value.trim();
+    const notes = document.getElementById('cust-notes').value.trim();
+    const total = state.cart.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+    const { data: order, error } = await client.from('orders').insert({
+      customer_name: name, customer_phone: phone, delivery_address: delivery === 'Retiro en Local' ? 'Retiro en local' : address,
+      notes, payment_method: 'contra_entrega', status: 'pendiente', total
+    }).select('id').single();
+    if (error || !order) return;
+    await client.from('order_items').insert(state.cart.map(item => ({
+      order_id: order.id, product_id: Number.isFinite(Number(item.dbId)) ? Number(item.dbId) : null,
+      product_name: item.name, unit_price: Number(item.price), quantity: Number(item.quantity), subtotal: Number(item.price) * Number(item.quantity)
+    })));
+  }
+
+  window.addEventListener('DOMContentLoaded', function () {
+    loadProductsFromSupabase();
+    const originalSave = window.saveToLocalStorage;
+    window.saveToLocalStorage = function () {
+      originalSave();
+      state.products.forEach(async p => {
+        const payload = { name: p.name, description: p.description || '', category: p.category || 'Perfumes', price: Number(p.price || 0), stock: Number(p.stock || 0), image_url: p.image || '', active: true, updated_at: new Date().toISOString() };
+        if (p.dbId) await client.from('products').update(payload).eq('id', p.dbId);
+        else { const { data } = await client.from('products').insert(payload).select('id').single(); if (data) p.dbId = data.id; }
+      });
+    };
+    const originalOrder = window.sendWhatsAppOrder;
+    window.sendWhatsAppOrder = async function (event) {
+      await saveOrderToSupabase();
+      originalOrder(event);
+    };
+  });
+})();
+</script>
+
 </body>
 </html>
