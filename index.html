@@ -899,7 +899,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
             const normalizedPhone = String(state.whatsappPhone || '').replace(/\D/g, '');
             const waUrl = `https://api.whatsapp.com/send?phone=${normalizedPhone}&text=${encodedMsg}`;
 
-            window.open(waUrl, '_blank');
+            window.location.assign(waUrl);
             
             // Clear cart & close modals
             state.cart = [];
