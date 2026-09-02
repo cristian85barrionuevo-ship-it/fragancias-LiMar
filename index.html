@@ -939,6 +939,13 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
                     <td class="p-3 font-medium text-slate-200">${p.name} ${p.size ? `<span class="text-[10px] text-slate-500 block">${p.size}</span>` : ''}</td>
                     <td class="p-3 text-slate-400">${p.category}</td>
                     <td class="p-3 font-mono font-bold text-amber-400">${state.currency}${formatPrice(p.price)}</td>
+                    <td class="p-3 text-center stock-cell font-mono">
+                        <div class="flex items-center justify-center gap-2">
+                            <button type="button" onclick="changeStock('${p.id}', -1)" class="px-2 py-1 bg-slate-700 text-white rounded" aria-label="Bajar stock">−</button>
+                            <b class="min-w-[2rem] text-center ${Number(p.stock || 0) <= 2 ? 'text-red-400' : 'text-emerald-400'}">${Number(p.stock || 0)}</b>
+                            <button type="button" onclick="changeStock('${p.id}', 1)" class="px-2 py-1 bg-amber-500 text-slate-950 rounded" aria-label="Subir stock">+</button>
+                        </div>
+                    </td>
                     <td class="p-3 text-right">
                         <div class="flex items-center justify-end gap-2">
                             <button onclick="editProduct('${p.id}')" class="text-amber-400 hover:text-amber-300 p-1">
@@ -1159,13 +1166,27 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
   window.addEventListener('DOMContentLoaded', function () {
     loadProductsFromSupabase();
     const originalSave = window.saveToLocalStorage;
+    let syncQueue = Promise.resolve();
     window.saveToLocalStorage = function () {
       originalSave();
-      state.products.forEach(async p => {
-        const payload = { name: p.name, description: p.description || '', category: p.category || 'Perfumes', price: Number(p.price || 0), stock: Number(p.stock || 0), image_url: p.image || '', active: true, updated_at: new Date().toISOString() };
-        if (p.dbId) await client.from('products').update(payload).eq('id', p.dbId);
-        else { const { data } = await client.from('products').insert(payload).select('id').single(); if (data) p.dbId = data.id; }
+      const snapshot = state.products.map(p => ({ ...p }));
+      syncQueue = syncQueue.then(async () => {
+        for (const p of snapshot) {
+          const payload = { name: p.name, description: p.description || '', category: p.category || 'Perfumes', price: Number(p.price || 0), stock: Number(p.stock || 0), image_url: p.image || '', active: true, updated_at: new Date().toISOString() };
+          if (p.dbId) {
+            const { error } = await client.from('products').update(payload).eq('id', p.dbId);
+            if (error) console.error('No se pudo guardar el producto', p.id, error);
+          } else {
+            const { data, error } = await client.from('products').insert(payload).select('id').single();
+            if (error) console.error('No se pudo crear el producto', p.id, error);
+            if (data) {
+              const current = state.products.find(x => x.id === p.id);
+              if (current) current.dbId = data.id;
+            }
+          }
+        }
       });
+      return syncQueue;
     };
     const originalOrder = window.sendWhatsAppOrder;
     window.sendWhatsAppOrder = function (event) {
@@ -1276,26 +1297,13 @@ window.addEventListener('DOMContentLoaded',function(){
   }
   window.addEventListener('DOMContentLoaded',function(){
     addStockField();
-    const oldSubmit=window.handleProductSubmit;
-    window.handleProductSubmit=function(e){oldSubmit(e);const stock=Math.max(0,parseInt(document.getElementById('prod-stock')?.value||'0',10));const edit=document.getElementById('prod-edit-id').value;const p=state.products.find(x=>x.id===edit)||state.products[0];if(p){p.stock=stock;saveToLocalStorage();renderAdminProductsList();}};
     const oldEdit=window.editProduct;window.editProduct=function(id){oldEdit(id);const p=state.products.find(x=>x.id===id);if(p&&document.getElementById('prod-stock'))document.getElementById('prod-stock').value=Number(p.stock||0);};
     const oldReset=window.resetProductForm;window.resetProductForm=function(){oldReset();if(document.getElementById('prod-stock'))document.getElementById('prod-stock').value='0';};
   });
 })();
 </script>
 
-<script>
-(function(){
-  function addStockColumn(){
-    const table=document.querySelector('#tab-content-products table');
-    if(!table)return;
-    const head=table.querySelector('thead tr');
-    if(head&&!head.querySelector('.stock-header')){const th=document.createElement('th');th.className='p-3 stock-header';th.textContent='Stock';head.insertBefore(th,head.lastElementChild);}
-    document.querySelectorAll('#admin-products-list tr').forEach(row=>{if(row.querySelector('.stock-cell'))return;const name=row.querySelector('td')?.textContent||'';const p=state.products.find(x=>name.includes(x.name));const td=document.createElement('td');td.className='p-3 stock-cell font-mono '+((p?.stock||0)<=2?'text-red-400':'text-emerald-400');td.textContent=String(p?.stock??0);row.insertBefore(td,row.lastElementChild);});
-  }
-  window.addEventListener('DOMContentLoaded',function(){const old=window.renderAdminProductsList;window.renderAdminProductsList=function(){old();setTimeout(addStockColumn,0);};setTimeout(addStockColumn,500);});
-})();
-</script>
+
 
 <script>
 (function(){
@@ -1323,9 +1331,32 @@ function showWhatsAppConfirm(url){const old=document.getElementById('whatsapp-co
 </script>
 <script>
 (function(){
-  window.changeStock=async function(id,delta){const p=state.products.find(x=>x.id===id);if(!p)return;const next=Math.max(0,Number(p.stock||0)+delta);const {error}=await window.limarSupabase.from('products').update({stock:next,updated_at:new Date().toISOString()}).eq('id',p.dbId||p.id);if(error){showToast('No se pudo actualizar el stock','error');return}p.stock=next;localStorage.setItem('aura_products',JSON.stringify(state.products));renderAdminProductsList();renderProducts(state.products);showToast('Stock actualizado');};
-  function controls(){document.querySelectorAll('#admin-products-list tr').forEach(row=>{let cell=row.querySelector('.stock-cell');if(!cell)return;const p=state.products.find(x=>(row.querySelector('td')?.textContent||'').includes(x.name));if(!p)return;cell.innerHTML=`<button onclick="changeStock('${p.id}',-1)" class="px-2 py-1 bg-slate-700 text-white rounded">−</button><b class="mx-2">${p.stock||0}</b><button onclick="changeStock('${p.id}',1)" class="px-2 py-1 bg-amber-500 text-slate-950 rounded">+</button>`;});}
-  window.addEventListener('DOMContentLoaded',function(){const old=window.renderAdminProductsList;window.renderAdminProductsList=function(){old();setTimeout(controls,0)};setTimeout(controls,700);});
+  let stockUpdateQueue = Promise.resolve();
+  window.changeStock = function(id, delta) {
+    stockUpdateQueue = stockUpdateQueue.then(async () => {
+      const p = state.products.find(x => x.id === id);
+      if (!p || !window.limarSupabase) return;
+      const previous = Number(p.stock || 0);
+      const next = Math.max(0, previous + Number(delta || 0));
+      if (next === previous) return;
+      p.stock = next;
+      renderAdminProductsList();
+      renderProducts(state.products);
+      const { error } = await window.limarSupabase.from('products')
+        .update({ stock: next, updated_at: new Date().toISOString() })
+        .eq('id', p.dbId || p.id);
+      if (error) {
+        p.stock = previous;
+        renderAdminProductsList();
+        renderProducts(state.products);
+        showToast('No se pudo actualizar el stock', 'error');
+        return;
+      }
+      localStorage.setItem('aura_products', JSON.stringify(state.products));
+      showToast('Stock actualizado');
+    });
+    return stockUpdateQueue;
+  };
 })();
 </script>
 
