@@ -896,7 +896,8 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
             message += `Quedo a la espera de la confirmación para la entrega. ¡Muchas gracias!`;
 
             const encodedMsg = encodeURIComponent(message);
-            const waUrl = `https://wa.me/${state.whatsappPhone}?text=${encodedMsg}`;
+            const normalizedPhone = String(state.whatsappPhone || '').replace(/\D/g, '');
+            const waUrl = `https://api.whatsapp.com/send?phone=${normalizedPhone}&text=${encodedMsg}`;
 
             window.open(waUrl, '_blank');
             
@@ -1137,18 +1138,19 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
 
   async function saveOrderToSupabase() {
     if (!state.cart.length) return;
+    const cartSnapshot = state.cart.map(item => ({...item}));
     const name = document.getElementById('cust-name').value.trim();
     const phone = document.getElementById('cust-phone').value.trim();
     const delivery = document.getElementById('cust-delivery').value;
     const address = document.getElementById('cust-address').value.trim();
     const notes = document.getElementById('cust-notes').value.trim();
-    const total = state.cart.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+    const total = cartSnapshot.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
     const { data: order, error } = await client.from('orders').insert({
       customer_name: name, customer_phone: phone, delivery_address: delivery === 'Retiro en Local' ? 'Retiro en local' : address,
       notes, payment_method: 'contra_entrega', status: 'pendiente', total
     }).select('id').single();
     if (error || !order) return;
-    await client.from('order_items').insert(state.cart.map(item => ({
+    await client.from('order_items').insert(cartSnapshot.map(item => ({
       order_id: order.id, product_id: Number.isFinite(Number(item.dbId)) ? Number(item.dbId) : null,
       product_name: item.name, unit_price: Number(item.price), quantity: Number(item.quantity), subtotal: Number(item.price) * Number(item.quantity)
     })));
@@ -1166,8 +1168,8 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
       });
     };
     const originalOrder = window.sendWhatsAppOrder;
-    window.sendWhatsAppOrder = async function (event) {
-      await saveOrderToSupabase();
+    window.sendWhatsAppOrder = function (event) {
+      saveOrderToSupabase();
       originalOrder(event);
     };
   });
