@@ -1317,5 +1317,13 @@ window.addEventListener('DOMContentLoaded',function(){
 <script>
 function showWhatsAppConfirm(url){const old=document.getElementById('whatsapp-confirm-modal');if(old)old.remove();const d=document.createElement('div');d.id='whatsapp-confirm-modal';d.className='fixed inset-0 z-[90] flex items-center justify-center p-4';d.innerHTML='<div class="absolute inset-0 bg-slate-950/90"></div><div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-6 text-center"><div class="text-green-400 text-4xl mb-3">✓</div><h3 class="text-lg font-bold text-white mb-2">Pedido guardado</h3><p class="text-sm text-slate-400 mb-5">Ahora tocá el botón para abrir WhatsApp y enviar el pedido.</p><a href="'+url+'" target="_blank" rel="noopener" class="block w-full py-3 bg-green-500 hover:bg-green-400 text-slate-950 font-bold rounded-xl">Abrir WhatsApp</a><button onclick="document.getElementById(\'whatsapp-confirm-modal\').remove()" class="mt-3 text-xs text-slate-400">Cerrar</button></div>';document.body.appendChild(d);}
 </script>
+<script>
+(function(){
+  window.changeStock=async function(id,delta){const p=state.products.find(x=>x.id===id);if(!p)return;const next=Math.max(0,Number(p.stock||0)+delta);const {error}=await window.limarSupabase.from('products').update({stock:next,updated_at:new Date().toISOString()}).eq('id',p.dbId||p.id);if(error){showToast('No se pudo actualizar el stock','error');return}p.stock=next;localStorage.setItem('aura_products',JSON.stringify(state.products));renderAdminProductsList();renderProducts(state.products);showToast('Stock actualizado');};
+  function controls(){document.querySelectorAll('#admin-products-list tr').forEach(row=>{let cell=row.querySelector('.stock-cell');if(!cell)return;const p=state.products.find(x=>(row.querySelector('td')?.textContent||'').includes(x.name));if(!p)return;cell.innerHTML=`<button onclick="changeStock('${p.id}',-1)" class="px-2 py-1 bg-slate-700 text-white rounded">−</button><b class="mx-2">${p.stock||0}</b><button onclick="changeStock('${p.id}',1)" class="px-2 py-1 bg-amber-500 text-slate-950 rounded">+</button>`;});}
+  window.addEventListener('DOMContentLoaded',function(){const old=window.renderAdminProductsList;window.renderAdminProductsList=function(){old();setTimeout(controls,0)};setTimeout(controls,700);});
+})();
+</script>
+
 </body>
 </html>
