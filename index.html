@@ -1025,13 +1025,28 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
             document.getElementById('prod-submit-btn').innerText = "Guardar Producto";
         }
 
-        function deleteProduct(id) {
+        async function deleteProduct(id) {
+            const product = state.products.find(p => p.id === id);
+            if (!product) return;
+
+            // Desactivamos el registro real para que no vuelva a aparecer al recargar.
+            // Se conserva en Supabase para no romper el historial de pedidos.
+            if (product.dbId && window.limarSupabase) {
+                const { error } = await window.limarSupabase.from('products')
+                    .update({ active: false, updated_at: new Date().toISOString() })
+                    .eq('id', product.dbId);
+                if (error) {
+                    showToast("No se pudo eliminar el producto", "error");
+                    return;
+                }
+            }
+
             state.products = state.products.filter(p => p.id !== id);
-            saveToLocalStorage();
+            localStorage.setItem('aura_products', JSON.stringify(state.products));
             renderCategories();
             applyFilters();
             renderAdminProductsList();
-            showToast("Producto eliminado de la lista");
+            showToast("Producto eliminado correctamente");
         }
 
         function importMassiveProducts(replace) {
