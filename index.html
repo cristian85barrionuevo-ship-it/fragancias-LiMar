@@ -960,7 +960,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
             `).join('');
         }
 
-        function handleProductSubmit(e) {
+        async function handleProductSubmit(e) {
             e.preventDefault();
             const editId = document.getElementById('prod-edit-id').value;
             const name = document.getElementById('prod-name').value.trim();
@@ -992,12 +992,16 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
                 });
             }
 
-            saveToLocalStorage();
+            const saved = await saveToLocalStorage();
+            if (saved === false) {
+                showToast("No se pudo guardar el producto en el catálogo", "error");
+                return;
+            }
             renderCategories();
             applyFilters();
             renderAdminProductsList();
             resetProductForm();
-            showToast(editId ? "Producto actualizado" : "Producto agregado");
+            showToast(editId ? "Producto actualizado y guardado" : "Producto agregado y guardado");
         }
 
         function editProduct(id) {
@@ -1185,15 +1189,16 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
     window.saveToLocalStorage = function () {
       originalSave();
       const snapshot = state.products.map(p => ({ ...p }));
+      let failed = false;
       syncQueue = syncQueue.then(async () => {
         for (const p of snapshot) {
           const payload = { name: p.name, description: p.description || '', category: p.category || 'Perfumes', price: Number(p.price || 0), stock: Number(p.stock || 0), image_url: p.image || '', active: true, updated_at: new Date().toISOString() };
           if (p.dbId) {
             const { error } = await client.from('products').update(payload).eq('id', p.dbId);
-            if (error) console.error('No se pudo guardar el producto', p.id, error);
+            if (error) { failed = true; console.error('No se pudo guardar el producto', p.id, error); }
           } else {
             const { data, error } = await client.from('products').insert(payload).select('id').single();
-            if (error) console.error('No se pudo crear el producto', p.id, error);
+            if (error) { failed = true; console.error('No se pudo crear el producto', p.id, error); }
             if (data) {
               const current = state.products.find(x => x.id === p.id);
               if (current) current.dbId = data.id;
@@ -1201,7 +1206,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
           }
         }
       });
-      return syncQueue;
+      return syncQueue.then(() => !failed);
     };
     const originalOrder = window.sendWhatsAppOrder;
     window.sendWhatsAppOrder = function (event) {
