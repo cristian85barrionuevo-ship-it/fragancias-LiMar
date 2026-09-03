@@ -655,7 +655,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
 
         function renderCategories() {
             const container = document.getElementById('categories-container');
-            const categories = ['Todos', ...new Set(state.products.map(p => p.category))];
+            const categories = ['Todos', 'Con stock', ...new Set(state.products.map(p => p.category))];
 
             container.innerHTML = categories.map(cat => {
                 const isActive = cat === state.selectedCategory;
@@ -665,7 +665,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
                             ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md shadow-amber-500/20' 
                             : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
                     }">
-                        ${cat}
+                        ${cat === 'Con stock' ? 'Productos con stock' : cat}
                     </button>
                 `;
             }).join('');
@@ -689,7 +689,9 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
 
         function applyFilters() {
             let filtered = state.products.filter(p => {
-                const matchesCategory = state.selectedCategory === 'Todos' || p.category === state.selectedCategory;
+                const matchesCategory = state.selectedCategory === 'Todos'
+                    || (state.selectedCategory === 'Con stock' && Number(p.stock || 0) > 0)
+                    || p.category === state.selectedCategory;
                 const matchesQuery = p.name.toLowerCase().includes(state.searchQuery) || p.category.toLowerCase().includes(state.searchQuery);
                 return matchesCategory && matchesQuery;
             });
