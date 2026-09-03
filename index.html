@@ -995,7 +995,10 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
                 });
             }
 
-            const saved = await saveToLocalStorage();
+            // Guardar solo este producto evita actualizar toda la tabla en Supabase.
+            const saved = window.saveSingleProduct
+                ? await window.saveSingleProduct(editId || state.products[0].id)
+                : await saveToLocalStorage();
             if (saved === false) {
                 showToast("No se pudo guardar el producto en el catálogo", "error");
                 return;
@@ -1206,6 +1209,39 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
     loadProductsFromSupabase();
     const originalSave = window.saveToLocalStorage;
     window.limarStockWriteQueue = window.limarStockWriteQueue || Promise.resolve();
+
+    // Escritura rápida: precio, stock e imagen actualizan solo el producto editado.
+    window.saveSingleProduct = function (localId) {
+      const product = state.products.find(p => p.id === localId);
+      if (!product) return Promise.resolve(false);
+      const payload = {
+        name: product.name,
+        description: product.description || '',
+        category: product.category || 'Perfumes',
+        price: Number(product.price || 0),
+        stock: Number(product.stock || 0),
+        image_url: product.image || '',
+        active: true,
+        updated_at: new Date().toISOString()
+      };
+      window.limarStockWriteQueue = window.limarStockWriteQueue.then(async () => {
+        let result;
+        if (product.dbId) {
+          result = await client.from('products').update(payload).eq('id', product.dbId);
+        } else {
+          result = await client.from('products').insert(payload).select('id').single();
+          if (result.data) product.dbId = result.data.id;
+        }
+        if (result.error) {
+          console.error('No se pudo guardar el producto', product.id, result.error);
+          return false;
+        }
+        localStorage.setItem('aura_products', JSON.stringify(state.products));
+        return true;
+      });
+      return window.limarStockWriteQueue;
+    };
+
     let syncQueue = window.limarStockWriteQueue;
     window.saveToLocalStorage = function () {
       originalSave();
