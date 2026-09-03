@@ -399,7 +399,10 @@
                             </div>
                             <div>
                                 <label class="block text-[11px] text-slate-400 mb-1">URL de Imagen (Opcional)</label>
-                                <input type="url" id="prod-image" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100">
+                                <input type="url" id="prod-image" placeholder="https://..." oninput="previewProductImage(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100">
+                                <div id="prod-image-preview" class="hidden mt-2 h-20 rounded-lg overflow-hidden border border-slate-700 bg-slate-900 flex items-center justify-center">
+                                    <img id="prod-image-preview-img" src="" alt="Vista previa" class="h-full max-w-full object-contain">
+                                </div>
                             </div>
                         </div>
 
@@ -1004,6 +1007,21 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
             showToast(editId ? "Producto actualizado y guardado" : "Producto agregado y guardado");
         }
 
+        function previewProductImage(url) {
+            const preview = document.getElementById('prod-image-preview');
+            const image = document.getElementById('prod-image-preview-img');
+            if (!preview || !image) return;
+            const cleanUrl = String(url || '').trim();
+            if (!cleanUrl) {
+                preview.classList.add('hidden');
+                image.removeAttribute('src');
+                return;
+            }
+            image.onerror = () => preview.classList.add('hidden');
+            image.onload = () => preview.classList.remove('hidden');
+            image.src = cleanUrl;
+        }
+
         function editProduct(id) {
             const prod = state.products.find(p => p.id === id);
             if (!prod) return;
@@ -1015,6 +1033,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
             document.getElementById('prod-stock').value = Number(prod.stock || 0);
             document.getElementById('prod-size').value = prod.size || '';
             document.getElementById('prod-image').value = prod.image || '';
+            previewProductImage(prod.image || '');
             document.getElementById('prod-submit-btn').innerText = "Guardar Cambios";
         }
 
@@ -1026,6 +1045,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
             document.getElementById('prod-stock').value = '0';
             document.getElementById('prod-size').value = '';
             document.getElementById('prod-image').value = '';
+            previewProductImage('');
             document.getElementById('prod-submit-btn').innerText = "Guardar Producto";
         }
 
@@ -1185,7 +1205,8 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
   window.addEventListener('DOMContentLoaded', function () {
     loadProductsFromSupabase();
     const originalSave = window.saveToLocalStorage;
-    let syncQueue = Promise.resolve();
+    window.limarStockWriteQueue = window.limarStockWriteQueue || Promise.resolve();
+    let syncQueue = window.limarStockWriteQueue;
     window.saveToLocalStorage = function () {
       originalSave();
       const snapshot = state.products.map(p => ({ ...p }));
@@ -1206,6 +1227,7 @@ Carolina Herrera Good Girl | Perfumes Mujer | 110000 | 80 ml" class="w-full bg-s
           }
         }
       });
+      window.limarStockWriteQueue = syncQueue;
       return syncQueue.then(() => !failed);
     };
     const originalOrder = window.sendWhatsAppOrder;
@@ -1351,9 +1373,9 @@ function showWhatsAppConfirm(url){const old=document.getElementById('whatsapp-co
 </script>
 <script>
 (function(){
-  let stockUpdateQueue = Promise.resolve();
+  window.limarStockWriteQueue = window.limarStockWriteQueue || Promise.resolve();
   window.changeStock = function(id, delta) {
-    stockUpdateQueue = stockUpdateQueue.then(async () => {
+    window.limarStockWriteQueue = window.limarStockWriteQueue.then(async () => {
       const p = state.products.find(x => x.id === id);
       if (!p || !window.limarSupabase) return;
       const previous = Number(p.stock || 0);
@@ -1375,7 +1397,7 @@ function showWhatsAppConfirm(url){const old=document.getElementById('whatsapp-co
       localStorage.setItem('aura_products', JSON.stringify(state.products));
       showToast('Stock actualizado');
     });
-    return stockUpdateQueue;
+    return window.limarStockWriteQueue;
   };
 })();
 </script>
